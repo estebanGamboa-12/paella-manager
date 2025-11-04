@@ -5,9 +5,9 @@ export default function ClientCard({ client, onStatusChange }) {
   // 🔹 Calcular total real según paellas
   const total = client.paellas
     ? client.paellas.reduce(
-        (acc, p) => acc + (p.con_fianza ? p.importe_fianza : 0),
-        0
-      )
+      (acc, p) => acc + (p.con_fianza ? p.importe_fianza : 0),
+      0
+    )
     : 0;
 
   // ✅ Marcar como devuelto
@@ -26,9 +26,8 @@ export default function ClientCard({ client, onStatusChange }) {
 
   return (
     <div
-      className={`p-5 rounded-xl shadow-md mb-4 border transition ${
-        client.devuelto ? "bg-green-50 border-green-200" : "bg-white border-gray-200"
-      }`}
+      className={`p-5 rounded-xl shadow-md mb-4 border transition ${client.devuelto ? "bg-green-50 border-green-200" : "bg-white border-gray-200"
+        }`}
     >
       <div className="flex justify-between items-start">
         <div>
@@ -42,11 +41,10 @@ export default function ClientCard({ client, onStatusChange }) {
 
         {/* Estado visual */}
         <span
-          className={`px-3 py-1 text-sm rounded-full font-medium ${
-            client.devuelto
+          className={`px-3 py-1 text-sm rounded-full font-medium ${client.devuelto
               ? "bg-green-100 text-green-700"
               : "bg-yellow-100 text-yellow-700"
-          }`}
+            }`}
         >
           {client.devuelto ? "Devuelta" : "Pendiente"}
         </span>
@@ -67,6 +65,9 @@ export default function ClientCard({ client, onStatusChange }) {
           </li>
         ))}
       </ul>
+      <p className="text-gray-500 text-sm mt-1">
+        🗓️ {client.fecha_creacion || "Sin fecha"}
+      </p>
 
       <div className="mt-3 font-semibold text-gray-800">
         💰 Total fianzas:{" "}
