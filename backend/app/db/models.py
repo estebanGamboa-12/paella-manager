@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.database import Base
@@ -14,18 +14,16 @@ class Client(Base):
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     fecha_devolucion = Column(DateTime, nullable=True)
 
-    # 🟩 Relación: un cliente puede tener varias paellas
-    paellas = relationship("Paella", back_populates="cliente", cascade="all, delete")
+    paellas = relationship("Paella", back_populates="client", cascade="all, delete")
+
 
 class Paella(Base):
     __tablename__ = "paellas"
 
     id = Column(Integer, primary_key=True, index=True)
     client_id = Column(Integer, ForeignKey("clients.id"))
-    personas = Column(Integer, nullable=False)
+    personas = Column(Integer, nullable=False)     # Tamaño 2-12
     con_fianza = Column(Boolean, default=True)
     importe_fianza = Column(Float, default=10.0)
-    fecha_entrega = Column(DateTime, default=datetime.utcnow)
 
-    # 🔗 Relación inversa
-    cliente = relationship("Client", back_populates="paellas")
+    client = relationship("Client", back_populates="paellas")

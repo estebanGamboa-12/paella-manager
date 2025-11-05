@@ -4,12 +4,13 @@ import ClientCard from "../components/ClientCard";
 
 export default function Home() {
   const [clients, setClients] = useState([]);
+  const [filteredClients, setFilteredClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("pendientes");
   const [page, setPage] = useState(1);
-  const [perPage] = useState(4); // 👈 clientes por página
+  const [perPage] = useState(4);
 
-  // 🔍 Buscar clientes o listar todos
   const fetchClients = async () => {
     setLoading(true);
     try {
@@ -25,16 +26,33 @@ export default function Home() {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!confirm("¿Seguro que quieres eliminar este registro?")) return;
+
+    try {
+      await API.delete(`/clients/${id}`);
+      setClients(clients.filter((c) => c.id !== id));
+    } catch (error) {
+      alert("Error: no se pudo eliminar ❌");
+    }
+  };
+
   useEffect(() => {
     fetchClients();
   }, [search]);
 
-  // 🔢 Calcular paginación
-  const totalPages = Math.ceil(clients.length / perPage);
-  const start = (page - 1) * perPage;
-  const visibleClients = clients.slice(start, start + perPage);
+  useEffect(() => {
+    let filtered = [...clients];
+    if (filter === "pendientes") filtered = clients.filter((c) => !c.devuelto);
+    if (filter === "devueltas") filtered = clients.filter((c) => c.devuelto);
+    setFilteredClients(filtered);
+    setPage(1);
+  }, [clients, filter]);
 
-  // 🕓 Formatear fecha
+  const totalPages = Math.ceil(filteredClients.length / perPage);
+  const start = (page - 1) * perPage;
+  const visibleClients = filteredClients.slice(start, start + perPage);
+
   const formatDate = (isoString) => {
     const date = new Date(isoString);
     return date.toLocaleDateString("es-ES", {
@@ -48,19 +66,49 @@ export default function Home() {
 
   return (
     <div className="max-w-5xl mx-auto mt-10">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <h1 className="text-3xl font-bold text-blue-600 mb-4 md:mb-0 flex items-center gap-2">
+
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-3">
+        <h1 className="text-3xl font-bold text-blue-600 flex items-center gap-2">
           📋 Lista de Clientes
         </h1>
 
-        {/* 🔍 Barra de búsqueda */}
         <input
           type="text"
-          placeholder="Buscar por nombre, apellidos o teléfono..."
+          placeholder="Buscar por nombre o teléfono..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border border-gray-300 rounded-lg px-4 py-2 w-full md:w-96 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-gray-300 rounded-lg px-4 py-2 w-full md:w-96 focus:ring-2 focus:ring-blue-500"
         />
+      </div>
+
+      {/* Filtros */}
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={() => setFilter("pendientes")}
+          className={`px-4 py-2 rounded-full ${
+            filter === "pendientes" ? "bg-red-100 text-red-700 border border-red-300" : "bg-gray-100"
+          }`}
+        >
+          ⏳ Pendientes
+        </button>
+
+        <button
+          onClick={() => setFilter("devueltas")}
+          className={`px-4 py-2 rounded-full ${
+            filter === "devueltas" ? "bg-green-100 text-green-700 border border-green-300" : "bg-gray-100"
+          }`}
+        >
+          ✅ Devueltas
+        </button>
+
+        <button
+          onClick={() => setFilter("todas")}
+          className={`px-4 py-2 rounded-full ${
+            filter === "todas" ? "bg-blue-100 text-blue-700 border border-blue-300" : "bg-gray-100"
+          }`}
+        >
+          📦 Todas
+        </button>
       </div>
 
       {loading ? (
@@ -69,42 +117,31 @@ export default function Home() {
         visibleClients.map((c) => (
           <ClientCard
             key={c.id}
-            client={{
-              ...c,
-              fecha_creacion: formatDate(c.fecha_creacion),
-            }}
+            client={{ ...c, fecha_creacion: formatDate(c.fecha_creacion) }}
             onStatusChange={fetchClients}
+            onDelete={handleDelete}
           />
         ))
       ) : (
         <p className="text-center text-gray-400">No se encontraron resultados.</p>
       )}
 
-      {/* 🔢 Controles de paginación */}
-      {clients.length > perPage && (
+      {filteredClients.length > perPage && (
         <div className="flex justify-center mt-6 gap-3">
           <button
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
-            className={`px-4 py-2 rounded-lg ${
-              page === 1
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            }`}
+            className="px-4 py-2 bg-gray-200 rounded-lg"
           >
             ⬅️ Anterior
           </button>
-          <span className="px-4 py-2 font-medium text-gray-700">
-            Página {page} de {totalPages}
-          </span>
+
+          <span>Página {page} de {totalPages}</span>
+
           <button
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
-            className={`px-4 py-2 rounded-lg ${
-              page === totalPages
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            }`}
+            className="px-4 py-2 bg-gray-200 rounded-lg"
           >
             Siguiente ➡️
           </button>

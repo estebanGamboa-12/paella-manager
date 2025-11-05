@@ -1,65 +1,79 @@
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.db import models
-from app.schemas.client_schema import ClientCreate
+from app.schemas.client_schema import ClientCreate, ClientUpdate
 
-# 🧩 Obtener todos los clientes con sus paellas asociadas
 def get_all_clients(db: Session):
-    return (
-        db.query(models.Client)
-        .order_by(models.Client.fecha_creacion.desc())
-        .all()
-    )
+    return db.query(models.Client).order_by(models.Client.fecha_creacion.desc()).all()
 
-# 🔍 Buscar por nombre, apellidos o teléfono
+def get_client(db: Session, client_id: int):
+    return db.query(models.Client).filter(models.Client.id == client_id).first()
+
 def search_clients(db: Session, search_term: str):
-    return (
-        db.query(models.Client)
-        .filter(
-            (models.Client.nombre.ilike(f"%{search_term}%")) |
-            (models.Client.apellidos.ilike(f"%{search_term}%")) |
-            (models.Client.telefono.ilike(f"%{search_term}%"))
-        )
-        .all()
-    )
+    return db.query(models.Client).filter(
+        models.Client.nombre.ilike(f"%{search_term}%") |
+        models.Client.apellidos.ilike(f"%{search_term}%") |
+        models.Client.telefono.ilike(f"%{search_term}%")
+    ).all()
 
-# 🆕 Crear cliente con varias paellas
-def create_client_with_paellas(db: Session, client: ClientCreate):
-    # 1️⃣ Crear el cliente base
+def create_client(db: Session, client: ClientCreate):
     db_client = models.Client(
         nombre=client.nombre,
         apellidos=client.apellidos,
         telefono=client.telefono,
     )
-
-    # 2️⃣ Crear paellas asociadas
-    total_importe = 0
-    for p in client.paellas:
-        importe_fianza = p.importe_fianza if p.con_fianza else 0
-        total_importe += importe_fianza
-
-        paella = models.Paella(
-            personas=p.personas,
-            con_fianza=p.con_fianza,
-            importe_fianza=importe_fianza,
-        )
-        db_client.paellas.append(paella)
-
-    # 3️⃣ Guardar en la base de datos
     db.add(db_client)
     db.commit()
     db.refresh(db_client)
 
-    # 4️⃣ Agregar un campo virtual total (no se guarda, solo se devuelve)
-    db_client.importe_total = total_importe
+    for p in client.paellas:
+        db.add(models.Paella(
+            client_id=db_client.id,
+            personas=p.personas,
+            con_fianza=p.con_fianza,
+            importe_fianza=p.importe_fianza,
+        ))
+
+    db.commit()
+    db.refresh(db_client)
     return db_client
 
-# 🔁 Marcar cliente como devuelto (todas sus paellas)
-def mark_as_returned(db: Session, client_id: int):
-    db_client = db.query(models.Client).get(client_id)
-    if db_client:
-        db_client.devuelto = True
-        db_client.fecha_devolucion = datetime.utcnow()
-        db.commit()
-        db.refresh(db_client)
+def update_client(db: Session, client_id: int, data: ClientUpdate):
+    db_client = get_client(db, client_id)
+    if not db_client:
+        return None
+
+    db_client.nombre = data.nombre
+    db_client.apellidos = data.apellidos
+    db_client.telefono = data.telefono
+
+    db.query(models.Paella).filter(models.Paella.client_id == client_id).delete()
+
+    for p in data.paellas:
+        db.add(models.Paella(
+            client_id=client_id,
+            personas=p.personas,
+            con_fianza=p.con_fianza,
+            importe_fianza=p.importe_fianza,
+        ))
+
+    db.commit()
+    db.refresh(db_client)
     return db_client
+
+def mark_as_returned(db: Session, client_id: int):
+    client = get_client(db, client_id)
+    if client:
+        client.devuelto = True
+        client.fecha_devolucion = datetime.utcnow()
+        db.commit()
+        db.refresh(client)
+    return client
+
+def delete_client(db: Session, client_id: int):
+    client = get_client(db, client_id)
+    if client:
+        db.delete(client)
+        db.commit()
+        return True
+    return False

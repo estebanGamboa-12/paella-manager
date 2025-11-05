@@ -5,6 +5,10 @@ import AddClient from "../pages/AddClient";
 import SearchClient from "../pages/SearchClient";
 import Dashboard from "../pages/Dashboard";
 import { Plus } from "lucide-react";
+import Ticket from "../pages/Ticket";
+import EditClient from "../pages/EditClient";
+
+
 
 
 export default function AppRoutes() {
@@ -17,6 +21,10 @@ export default function AppRoutes() {
           <Route path="/nuevo" element={<AddClient />} />
           <Route path="/buscar" element={<SearchClient />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/editar/:id" element={<EditClient />} />
+          <Route path="/ticket/:id" element={<Ticket />} />
+
+
         </Routes>
       </div>
 
